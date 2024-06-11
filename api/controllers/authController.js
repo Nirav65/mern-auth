@@ -20,15 +20,16 @@ const signup = async (req, res, next) => {
 }
 
 const signin = async (req, res, next) => {
-    const {email, password} = req.body;
+    const { email, password } = req.body;
     try {
         const validUser = await User.findOne({ email });
-        if(!validUser) return next(errorHandler(401, 'Email Address is not valid.'));
+        if(!validUser){ return next(errorHandler(404, 'User not found')); }
         const validPassword = bcryptjs.compareSync(password, validUser.password);
-        if(!validPassword) return next(errorHandler(401, 'Wrong Credentials!'));
-        const token = jwt.sign({ id: validUser._id }, process.env.JWT_SECRET);
-        const {password: hashedPassword, ...rest} = validUser._doc;
-        res.cookie('access_token', token, { httpOnly: true }).status(200).json(rest);
+        if(!validPassword){ return next(errorHandler(401, 'wrong credentials')); }
+        const userToken = jwt.sign({ id: validUser._id }, process.env.JWT_SECRET);
+        const { password: pwd , ...rest } = validUser._doc;
+        const expireDate = new Date(Date.now() + 3600000); //1 hour
+        res.cookie('access_token', userToken, { httpOnly: true, expires: expireDate}).status(200).json(rest);
     } catch (error) {
         next(error);
     }
